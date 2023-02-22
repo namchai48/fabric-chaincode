@@ -14,7 +14,7 @@ export class AssetTransferContract extends Contract {
     public async InitLedger(ctx: Context): Promise<void> {
         const assets: Asset[] = [
             {
-                ID: 'asset1',
+                ID: 'wallet1',
                 Owner: 'Tomoko',
                 Balance: 300,
                 Amount: 0,
@@ -22,7 +22,7 @@ export class AssetTransferContract extends Contract {
                 To: '',
             },
             {
-                ID: 'asset2',
+                ID: 'wallet2',
                 Owner: 'Brad',
                 Balance: 400,
                 Amount: 0,
@@ -30,7 +30,7 @@ export class AssetTransferContract extends Contract {
                 To: '',
             },
             {
-                ID: 'asset3',
+                ID: 'wallet3',
                 Owner: 'Jin Soo',
                 Balance: 500,
                 Amount: 0,
@@ -38,7 +38,7 @@ export class AssetTransferContract extends Contract {
                 To: '',
             },
             {
-                ID: 'asset4',
+                ID: 'wallet4',
                 Owner: 'Max',
                 Balance: 600,
                 Amount: 0,
@@ -46,7 +46,7 @@ export class AssetTransferContract extends Contract {
                 To: '',
             },
             {
-                ID: 'asset5',
+                ID: 'wallet5',
                 Owner: 'Adriana',
                 Balance: 700,
                 Amount: 0,
@@ -54,7 +54,7 @@ export class AssetTransferContract extends Contract {
                 To: '',
             },
             {
-                ID: 'asset6',
+                ID: 'wallet6',
                 Owner: 'Michel',
                 Balance: 800,
                 Amount: 0,
@@ -64,7 +64,7 @@ export class AssetTransferContract extends Contract {
         ];
 
         for (const asset of assets) {
-            asset.docType = 'asset';
+            asset.Timestamp = new Date().toLocaleString();
             // example of how to write to world state deterministically
             // use convetion of alphabetic order
             // we insert data in alphabetic order using 'json-stringify-deterministic' and 'sort-keys-recursive'
@@ -89,6 +89,7 @@ export class AssetTransferContract extends Contract {
             Amount: 0,
             From: '',
             To: '',
+            Timestamp: new Date().toLocaleString(),
         };
         // we insert data in alphabetic order using 'json-stringify-deterministic' and 'sort-keys-recursive'
         await ctx.stub.putState(id, Buffer.from(stringify(sortKeysRecursive(asset))));
@@ -120,6 +121,7 @@ export class AssetTransferContract extends Contract {
             Amount: amount,
             From: from,
             To: to,
+            Timestamp: new Date().toLocaleString(),
         };
         // we insert data in alphabetic order using 'json-stringify-deterministic' and 'sort-keys-recursive'
         return ctx.stub.putState(id, Buffer.from(stringify(sortKeysRecursive(updatedAsset))));
@@ -163,8 +165,8 @@ export class AssetTransferContract extends Contract {
         let res = await iterator.next();
         while (!res.done) {
             if (res.value) {
-                console.info(`found state update with value: ${res.value.value.toString('utf8')}`);
-                const obj = JSON.parse(res.value.value.toString('utf8'));
+                console.info(`found state update with value: ${res.value.value.toString()}`);
+                const obj = JSON.parse(res.value.value.toString());
                 result.push(obj);
             }
             res = await iterator.next();
@@ -175,21 +177,29 @@ export class AssetTransferContract extends Contract {
 
     // TransferAsset updates the owner field of asset with given id in the world state, and returns the old owner.
     @Transaction()
-    public async TransferBalance(ctx: Context, from: string, to: string, balance: number): Promise<string> {
+    public async TransferBalance(ctx: Context, from: string, to: string, amount: number): Promise<string> {
         const assetFromString = await this.ReadAsset(ctx, from);
         const assetFrom = JSON.parse(assetFromString);
 
-        if (assetFrom.Balance < balance) {
+        if (assetFrom.Balance < amount) {
             throw new Error(`The asset ${from} balance not enough.`);
         }
 
         const assetToString = await this.ReadAsset(ctx, to);
         const assetTo = JSON.parse(assetToString);
         const oldOwner = assetFrom.Owner;
-        assetFrom.Balance = assetFrom.Balance - balance;
+        assetFrom.Balance = assetFrom.Balance - amount;
+        assetFrom.Amount = -amount;
+        assetFrom.From = "";
+        assetFrom.To = to;
+        assetFrom.Timestamp = new Date().toLocaleString();
         // we insert data in alphabetic order using 'json-stringify-deterministic' and 'sort-keys-recursive'
         await ctx.stub.putState(from, Buffer.from(stringify(sortKeysRecursive(assetFrom))));
-        assetTo.Balance = assetTo.Balance + balance;
+        assetTo.Balance = assetTo.Balance + amount;
+        assetTo.Amount = amount;
+        assetTo.From = from;
+        assetTo.To = "";
+        assetTo.Timestamp = new Date().toLocaleString();
         await ctx.stub.putState(to, Buffer.from(stringify(sortKeysRecursive(assetTo))));
         return oldOwner;
     }
