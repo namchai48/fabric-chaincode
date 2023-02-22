@@ -17,4 +17,14 @@ export class Asset {
 
     @Property()
     public Balance: number;
+
+    @Property()
+    public Amount: number;
+
+    @Property()
+    public From: string;
+
+    @Property()
+    public To: string;
+
 }
